@@ -33,7 +33,7 @@ def countPlayers():
     """Returns the number of players currently registered."""
     db = connect()
     cursor = db.cursor()
-    cursor.execute('SELECT count(*) AS total_players FROM players')
+    cursor.execute('SELECT count(id) AS total_players FROM players')
     count = cursor.fetchone()[0]
     db.close()
     return count
@@ -49,7 +49,7 @@ def registerPlayer(name):
     """
     db = connect()
     cursor = db.cursor()
-    cursor.execute('insert into players (name) VALUES (%s)', (name,))
+    cursor.execute('INSERT INTO players (name) VALUES (%s)', (name,))
     db.commit()
     db.close()
 
@@ -82,7 +82,7 @@ def reportMatch(winner, loser):
     """
     db = connect()
     cursor = db.cursor()
-    cursor.execute('insert into matches (winner_id, loser_id) values(%s,%s)', (winner, loser))
+    cursor.execute('INSERT INTO matches (winner, player1, player2) VALUES (%s, %s, %s)', (winner, winner, loser))
     db.commit()
     db.close()
  
