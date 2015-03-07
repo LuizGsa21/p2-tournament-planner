@@ -7,24 +7,33 @@
 -- these lines here.
 
 
-CREATE TABLE players (
+CREATE TABLE tournaments (
   id   SERIAL PRIMARY KEY,
   name TEXT
 );
 
+CREATE TABLE players (
+  id         SERIAL PRIMARY KEY,
+  name       TEXT                                NOT NULL,
+  tournament INTEGER REFERENCES tournaments (id) NOT NULL
+);
+
 CREATE TABLE matches (
-  id        SERIAL PRIMARY KEY,
-  winner_id INTEGER REFERENCES players (id),
-  loser_id  INTEGER REFERENCES players (id)
+  id         SERIAL PRIMARY KEY,
+  tournament INTEGER REFERENCES tournaments (id),
+  player1    INTEGER REFERENCES players (id) NOT NULL,
+  player2    INTEGER REFERENCES players (id),
+  winner     INTEGER REFERENCES players (id) NOT NULL,
+  CHECK (player1 != player2)
 );
 
 CREATE VIEW standings AS
   SELECT
     p.id                                                                AS player_id,
     p.name                                                              AS player_name,
-    count(CASE WHEN p.id = m.winner_id THEN 1 END)                      AS wins,
-    count(CASE WHEN p.id = m.winner_id OR p.id = m.loser_id THEN 1 END) AS totat_matches
+    count(CASE WHEN p.id = m.winner THEN 1 END)                      AS wins,
+    count(CASE WHEN p.id = m.player1 OR p.id = m.player2 THEN 1 END) AS totat_matches
   FROM players AS p
     LEFT JOIN matches AS m
-      ON p.id = m.winner_id OR p.id = m.loser_id
+      ON p.id = m.player1 OR p.id = m.player2
   GROUP BY p.id, p.name;
