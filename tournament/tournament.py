@@ -13,15 +13,30 @@ def connect():
 
 def deleteMatches():
     """Remove all the match records from the database."""
+    db = connect()
+    cursor = db.cursor()
+    cursor.execute('DELETE FROM matches')
+    db.commit()
+    db.close()
 
 
 def deletePlayers():
     """Remove all the player records from the database."""
+    db = connect()
+    cursor = db.cursor()
+    cursor.execute('DELETE FROM players')
+    db.commit()
+    db.close()
 
 
 def countPlayers():
     """Returns the number of players currently registered."""
-
+    db = connect()
+    cursor = db.cursor()
+    cursor.execute('SELECT count(*) AS total_players FROM players')
+    count = cursor.fetchone()[0]
+    db.close()
+    return count
 
 def registerPlayer(name):
     """Adds a player to the tournament database.
@@ -32,7 +47,11 @@ def registerPlayer(name):
     Args:
       name: the player's full name (need not be unique).
     """
-
+    db = connect()
+    cursor = db.cursor()
+    cursor.execute('insert into players (name) VALUES (%s)', (name,))
+    db.commit()
+    db.close()
 
 def playerStandings():
     """Returns a list of the players and their win records, sorted by wins.
@@ -47,7 +66,12 @@ def playerStandings():
         wins: the number of matches the player has won
         matches: the number of matches the player has played
     """
-
+    db = connect()
+    cursor = db.cursor()
+    cursor.execute('SELECT * FROM standings ORDER BY wins DESC')
+    standings = cursor.fetchall()
+    db.close()
+    return standings
 
 def reportMatch(winner, loser):
     """Records the outcome of a single match between two players.
@@ -56,7 +80,11 @@ def reportMatch(winner, loser):
       winner:  the id number of the player who won
       loser:  the id number of the player who lost
     """
- 
+    db = connect()
+    cursor = db.cursor()
+    cursor.execute('insert into matches (winner_id, loser_id) values(%s,%s)', (winner, loser))
+    db.commit()
+    db.close()
  
 def swissPairings():
     """Returns a list of pairs of players for the next round of a match.
