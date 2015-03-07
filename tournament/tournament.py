@@ -11,6 +11,23 @@ def connect():
     return psycopg2.connect("dbname=tournament")
 
 
+def startNewTournament(name):
+    db = connect()
+    cursor = db.cursor()
+    cursor.execute('INSERT INTO tournaments (name) VALUES (%s)', (name,))
+    db.commit()
+    db.close()
+    return getCurrentTournamentId()
+
+
+def getCurrentTournamentId():
+    db = connect()
+    cursor = db.cursor()
+    cursor.execute('SELECT id FROM tournaments ORDER BY id DESC LIMIT 1')
+    id = cursor.fetchone()[0]
+    db.close()
+    return id
+
 def deleteMatches():
     """Remove all the match records from the database."""
     db = connect()
@@ -31,12 +48,14 @@ def deletePlayers():
 
 def countPlayers():
     """Returns the number of players currently registered."""
+    tournament = getCurrentTournamentId()
     db = connect()
     cursor = db.cursor()
-    cursor.execute('SELECT count(id) AS total_players FROM players')
+    cursor.execute('SELECT count(id) AS total_players FROM players WHERE tournament = %s', (tournament,))
     count = cursor.fetchone()[0]
     db.close()
     return count
+
 
 def registerPlayer(name):
     """Adds a player to the tournament database.
@@ -47,9 +66,11 @@ def registerPlayer(name):
     Args:
       name: the player's full name (need not be unique).
     """
+    tournament = getCurrentTournamentId()
+
     db = connect()
     cursor = db.cursor()
-    cursor.execute('INSERT INTO players (name) VALUES (%s)', (name,))
+    cursor.execute('INSERT INTO players (name, tournament) VALUES (%s, %s)', (name, tournament))
     db.commit()
     db.close()
 
@@ -73,16 +94,25 @@ def playerStandings():
     db.close()
     return standings
 
-def reportMatch(winner, loser):
+
+def reportMatch(player1, player2, isDraw=False):
     """Records the outcome of a single match between two players.
 
     Args:
       winner:  the id number of the player who won
       loser:  the id number of the player who lost
     """
+    tournament = getCurrentTournamentId()
+
+    if isDraw:
+        winner = None
+    else:
+        winner = player1
+
     db = connect()
     cursor = db.cursor()
-    cursor.execute('INSERT INTO matches (winner, player1, player2) VALUES (%s, %s, %s)', (winner, winner, loser))
+    cursor.execute('INSERT INTO matches (tournament, winner, player1, player2) VALUES (%s, %s, %s, %s)',
+                   (tournament, winner, player1, player2))
     db.commit()
     db.close()
  
