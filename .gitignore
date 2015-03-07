@@ -1,4 +1,4 @@
 ### Vagrant template
 .vagrant/
 
-py[cod]
+*.py[cod]
