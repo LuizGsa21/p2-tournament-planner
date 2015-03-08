@@ -127,15 +127,19 @@ def testPairings():
 
 
 def testStartNewTournament():
-    tournament1 = getCurrentTournamentId()
-    startNewTournament('Programming Tournament')
-    tournament2 = getCurrentTournamentId()
+    tournament1 = startNewTournament('Programming Tournament 1')
+    tournament2 = startNewTournament('Programming Tournament 2')
 
     if tournament1 != tournament2 - 1:
         raise ValueError(
             'Current tournament ID should should increment when a new tournament is started.')
 
     print '0. Current tournament ID is updated after starting a new tournament.'
+
+
+def testOddPlayerPairings():
+    startNewTournament('Odd Pairing Tournament Test')
+
 
 if __name__ == '__main__':
     testStartNewTournament()
