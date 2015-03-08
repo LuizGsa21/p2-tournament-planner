@@ -6,6 +6,10 @@
 -- You can write comments in this file by starting them with two dashes, like
 -- these lines here.
 
+DROP VIEW IF EXISTS standings;
+DROP TABLE IF EXISTS matches;
+DROP TABLE IF EXISTS players;
+DROP TABLE IF EXISTS tournaments;
 
 CREATE TABLE tournaments (
   id   SERIAL PRIMARY KEY,
