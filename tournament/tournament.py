@@ -28,7 +28,7 @@ def getCurrentTournamentId():
     if id is None:
         raise ValueError('No tournament was found in the database.')
     db.close()
-    return id
+    return id[0]
 
 
 def deleteMatches():
@@ -78,7 +78,7 @@ def registerPlayer(name):
     db.close()
 
 
-def playerStandings():
+def playerStandings(allTournaments=False):
     """Returns a list of the players and their win records, sorted by wins.
 
     The first entry in the list should be the player in first place, or a player
@@ -91,9 +91,18 @@ def playerStandings():
         wins: the number of matches the player has won
         matches: the number of matches the player has played
     """
+
     db = connect()
     cursor = db.cursor()
-    cursor.execute('SELECT player_id, player_name, wins, total_matches FROM standings ORDER BY wins DESC')
+    if allTournaments:
+        cursor.execute("""SELECT player_id, player_name, wins, total_matches
+                          FROM standings
+                          ORDER BY wins DESC, player_id""")
+    else:
+        tournament = getCurrentTournamentId()
+        cursor.execute("""SELECT player_id, player_name, wins, total_matches
+                          FROM standings
+                          WHERE tournament = %s ORDER BY wins DESC, player_id""", (tournament,))
     standings = cursor.fetchall()
     db.close()
     return standings
@@ -132,7 +141,7 @@ def insertByePlayer(standings):
     db.close()
     for i, player in reversed(list(enumerate(standings))):
         if byePlayer == player[0]:
-            standings.remove(i)
+            standings.pop(i)
             standings.append(player)
             standings.append((None, None))
             break
