@@ -24,9 +24,12 @@ def getCurrentTournamentId():
     db = connect()
     cursor = db.cursor()
     cursor.execute('SELECT id FROM tournaments ORDER BY id DESC LIMIT 1')
-    id = cursor.fetchone()[0]
+    id = cursor.fetchone()
+    if id is None:
+        raise ValueError('No tournament was found in the database.')
     db.close()
     return id
+
 
 def deleteMatches():
     """Remove all the match records from the database."""
@@ -73,6 +76,7 @@ def registerPlayer(name):
     cursor.execute('INSERT INTO players (name, tournament) VALUES (%s, %s)', (name, tournament))
     db.commit()
     db.close()
+
 
 def playerStandings():
     """Returns a list of the players and their win records, sorted by wins.
