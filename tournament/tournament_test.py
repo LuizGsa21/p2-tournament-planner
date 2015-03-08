@@ -151,6 +151,10 @@ def testOddPlayerPairings():
             if pair[2] is None:
                 playersGivenBye.append(pair[0])
             reportMatch(pair[0], pair[2])
+
+    if len(playersGivenBye) != 9:
+        raise ValueError('Wrong number of byes. Expected %s but %s were given' % (9, len(playersGivenBye)))
+
     seen = set()
     for bye in playersGivenBye:
         if bye in seen:
