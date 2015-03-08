@@ -97,7 +97,7 @@ def playerStandings(allTournaments=False):
     if allTournaments:
         cursor.execute("""SELECT player_id, player_name, wins, total_matches
                           FROM standings
-                          ORDER BY wins DESC, player_id""")
+                          ORDER BY wins DESC, draws, player_id""")
     else:
         tournament = getCurrentTournamentId()
         cursor.execute("""SELECT player_id, player_name, wins, total_matches
