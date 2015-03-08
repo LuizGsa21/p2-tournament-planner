@@ -89,7 +89,7 @@ def playerStandings():
     """
     db = connect()
     cursor = db.cursor()
-    cursor.execute('SELECT * FROM standings ORDER BY wins DESC')
+    cursor.execute('SELECT player_id, player_name, wins, total_matches FROM standings ORDER BY wins DESC')
     standings = cursor.fetchall()
     db.close()
     return standings
@@ -115,7 +115,25 @@ def reportMatch(player1, player2, isDraw=False):
                    (tournament, winner, player1, player2))
     db.commit()
     db.close()
- 
+
+
+def insertByePlayer(standings):
+    tournament = getCurrentTournamentId()
+    db = connect()
+    cursor = db.cursor()
+    cursor.execute("""SELECT player_id FROM standings WHERE tournament = %s AND player_id NOT IN
+                       (SELECT player1 FROM matches WHERE tournament = %s AND player2 IS NULL)
+                        ORDER BY wins LIMIT 1""", (tournament, tournament))
+    byePlayer = cursor.fetchone()[0]
+    db.close()
+    for i, player in reversed(list(enumerate(standings))):
+        if byePlayer == player[0]:
+            standings.remove(i)
+            standings.append(player)
+            standings.append((None, None))
+            break
+
+
 def swissPairings():
     """Returns a list of pairs of players for the next round of a match.
   
@@ -132,5 +150,8 @@ def swissPairings():
         name2: the second player's name
     """
     standings = playerStandings()
+    playerCount = countPlayers()
+    if playerCount % 2 == 1:
+        insertByePlayer(standings)
     return [(p1[0], p1[1], p2[0], p2[1]) for p1, p2 in zip(standings[::2], standings[1::2])]
 
