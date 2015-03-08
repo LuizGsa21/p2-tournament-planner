@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #
 # Test cases for tournament.py
+import math
 
 from tournament import *
 
@@ -139,6 +140,23 @@ def testStartNewTournament():
 
 def testOddPlayerPairings():
     startNewTournament('Odd Pairing Tournament Test')
+    for i in range(0, 9):
+        registerPlayer('Player %s' % (i + 1))
+
+    playersGivenBye = []
+    # Test 9 rounds with 9 players, All players should have 1 bye
+    for round in range(9):
+        pairings = swissPairings()
+        for pair in pairings:
+            if pair[2] is None:
+                playersGivenBye.append(pair[0])
+            reportMatch(pair[0], pair[2])
+    seen = set()
+    for bye in playersGivenBye:
+        if bye in seen:
+            raise ValueError('Player id %s was given more than one bye.' % bye)
+        else:
+            seen.add(bye)
 
 
 if __name__ == '__main__':
@@ -151,6 +169,7 @@ if __name__ == '__main__':
     testStandingsBeforeMatches()
     testReportMatches()
     testPairings()
+    testOddPlayerPairings()
     print "Success!  All tests pass!"
 
 
