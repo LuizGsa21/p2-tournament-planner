@@ -143,10 +143,10 @@ def insertByePlayer(standings):
     if byePlayer is None:
         raise ValueError('No possible bye player found.')
 
+    # Losing players get priority on free wins.
     for i, player in reversed(list(enumerate(standings))):
         if byePlayer[0] == player[0]:
-            standings.pop(i)
-            standings.append(player)
+            standings.append(standings.pop(i))
             standings.append((None, None))
             break
 
