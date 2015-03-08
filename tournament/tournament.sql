@@ -34,11 +34,16 @@ CREATE TABLE matches (
 CREATE VIEW standings AS
   SELECT
     p.tournament,
-    p.id                                                             AS player_id,
-    p.name                                                           AS player_name,
-    count(CASE WHEN p.id = m.winner THEN 1 END)                      AS wins,
-    count(CASE WHEN p.id = m.player1 OR p.id = m.player2 THEN 1 END) AS total_matches
+    p.id                         AS player_id,
+    p.name                       AS player_name,
+    COALESCE(s.wins, 0)          AS wins,
+    COALESCE(s.total_matches, 0) AS total_matches
   FROM players AS p
-    LEFT JOIN matches AS m
-      ON p.id = m.player1 OR p.id = m.player2
-  GROUP BY p.id, p.name;
+    LEFT JOIN (SELECT
+                 p.id,
+                 count(CASE WHEN p.id = m.winner THEN 1 END)                      AS wins,
+                 count(CASE WHEN p.id = m.player1 OR p.id = m.player2 THEN 1 END) AS total_matches
+               FROM players AS p,
+                 matches AS m
+               WHERE p.id = m.player1 OR p.id = m.player2
+               GROUP BY p.tournament, p.id, p.name) AS s ON p.id = s.id;
