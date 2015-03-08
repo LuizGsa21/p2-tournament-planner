@@ -37,7 +37,6 @@ CREATE VIEW standings AS
     p.id                                                             AS player_id,
     p.name                                                           AS player_name,
     count(CASE WHEN p.id = m.winner THEN 1 END)                      AS wins,
-    count(CASE WHEN m.winner IS NULL THEN 1 END)                     AS draws,
     count(CASE WHEN p.id = m.player1 OR p.id = m.player2 THEN 1 END) AS total_matches
   FROM players AS p
     LEFT JOIN matches AS m
