@@ -4,6 +4,7 @@
 
 from tournament import *
 
+
 def testDeleteMatches():
     deleteMatches()
     print "1. Old matches can be deleted."
@@ -125,7 +126,19 @@ def testPairings():
     print "8. After one match, players with one win are paired."
 
 
+def testStartNewTournament():
+    tournament1 = getCurrentTournamentId()
+    startNewTournament('Programming Tournament')
+    tournament2 = getCurrentTournamentId()
+
+    if tournament1 != tournament2 - 1:
+        raise ValueError(
+            'Current tournament ID should should increment when a new tournament is started.')
+
+    print '0. Current tournament ID is updated after starting a new tournament.'
+
 if __name__ == '__main__':
+    testStartNewTournament()
     testDeleteMatches()
     testDelete()
     testCount()
