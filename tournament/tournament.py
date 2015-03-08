@@ -137,10 +137,14 @@ def insertByePlayer(standings):
     cursor.execute("""SELECT player_id FROM standings WHERE tournament = %s AND player_id NOT IN
                        (SELECT player1 FROM matches WHERE tournament = %s AND player2 IS NULL)
                         ORDER BY wins LIMIT 1""", (tournament, tournament))
-    byePlayer = cursor.fetchone()[0]
+    byePlayer = cursor.fetchone()
     db.close()
+    
+    if byePlayer is None:
+        raise ValueError('No possible bye player found.')
+
     for i, player in reversed(list(enumerate(standings))):
-        if byePlayer == player[0]:
+        if byePlayer[0] == player[0]:
             standings.pop(i)
             standings.append(player)
             standings.append((None, None))
