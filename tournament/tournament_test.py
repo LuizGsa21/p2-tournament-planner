@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 #
 # Test cases for tournament.py
-import math
 
 from tournament import *
 
@@ -133,27 +132,27 @@ def testStartNewTournament():
 
     if tournament1 != tournament2 - 1:
         raise ValueError(
-            'Current tournament ID should should increment when a new tournament is started.')
+            'Current tournament ID should increment when a new tournament is started.')
 
     print '0. Current tournament ID is updated after starting a new tournament.'
 
 
 def testOddPlayerPairings():
-    startNewTournament('Odd Pairing Tournament Test')
-    for i in range(0, 9):
+    startNewTournament('Test Odd Pairing Tournament')
+    for i in range(0, 5):
         registerPlayer('Player %s' % (i + 1))
 
     playersGivenBye = []
-    # Test 9 rounds with 9 players, All players should have 1 bye
-    for round in range(9):
+    # Test 5 rounds with 5 players, All players should have 1 bye
+    for round in range(5):
         pairings = swissPairings()
         for pair in pairings:
             if pair[2] is None:
                 playersGivenBye.append(pair[0])
             reportMatch(pair[0], pair[2])
 
-    if len(playersGivenBye) != 9:
-        raise ValueError('Wrong number of byes. Expected %s but %s were given' % (9, len(playersGivenBye)))
+    if len(playersGivenBye) != 5:
+        raise ValueError('Wrong number of byes. Expected 5 but %s were given' % (len(playersGivenBye)))
 
     seen = set()
     for bye in playersGivenBye:
@@ -161,6 +160,29 @@ def testOddPlayerPairings():
             raise ValueError('Player id %s was given more than one bye.' % bye)
         else:
             seen.add(bye)
+    print '9. In odd player tournaments, byes are not given more than once for each player.'
+
+
+def testDrawRounds():
+    startNewTournament('Test Draw rounds Tournament')
+
+    for i in range(0, 4):
+        registerPlayer('Player %s' % (i + 1))
+
+    # Give player 1 a draw in every round
+    for round in range(3):
+        pairings = swissPairings()
+        for pair in pairings:
+            isDraw = pair[1] == 'Player 1'
+            reportMatch(pair[0], pair[2], isDraw=isDraw)
+
+    standings = playerStandings()
+    for row in standings:
+        if row[1] == 'Player 1' and row[2] != 0:
+            raise ValueError(
+                'Invalid wins for player 1. Expected 0 wins but found %s' % row[2])
+
+    print '10. Draw rounds are supported and don\'t count as wins.'
 
 
 if __name__ == '__main__':
@@ -174,6 +196,7 @@ if __name__ == '__main__':
     testReportMatches()
     testPairings()
     testOddPlayerPairings()
+    testDrawRounds()
     print "Success!  All tests pass!"
 
 
