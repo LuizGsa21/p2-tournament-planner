@@ -47,3 +47,19 @@ CREATE VIEW standings AS
                  matches AS m
                WHERE p.id = m.player1 OR p.id = m.player2
                GROUP BY p.tournament, p.id, p.name) AS s ON p.id = s.id;
+
+
+CREATE OR REPLACE FUNCTION get_OMW(INTEGER, INTEGER) RETURNS NUMERIC
+AS 'SELECT sum(standings.wins)
+    FROM
+      (SELECT DISTINCT CASE
+                       WHEN $1 = player1 THEN player2
+                        ELSE player1
+                       END AS id
+          FROM matches
+          WHERE tournament = $2 AND
+                (player1 = $1 OR player2 = $1)) AS op
+      LEFT JOIN standings ON op.id = player_id;'
+LANGUAGE SQL
+STABLE
+RETURNS NULL ON NULL INPUT;
