@@ -161,6 +161,34 @@ def reportMatch(player1, player2, isDraw=False):
     return True
 
 
+def getOddPairingMatches():
+    db = connect()
+    cursor = db.cursor()
+    cursor.execute("""WITH rankings AS (SELECT player_id, player_name, wins, total_matches
+                                        FROM standings WHERE tournament = %s
+                                        ORDER BY wins DESC, omw DESC, player_id),
+                           byeplayer AS (SELECT r.*
+                                         FROM rankings AS r
+                                         WHERE r.player_id NOT IN (SELECT m.player1
+                                                                   FROM matches AS m
+                                                                   WHERE m.player1 = r.player_id AND player2 IS NULL) ORDER BY wins LIMIT 1)
+                        SELECT  r.*
+                        FROM rankings AS r, byeplayer AS b
+                        WHERE r.player_id != b.player_id
+                        UNION ALL
+                        SELECT * FROM byeplayer
+                        UNION ALL
+                        SELECT NULL, NULL, NULL, NULL""", (getCurrentTournamentId(),))
+    pairings = cursor.fetchall()
+    db.close()
+
+    if pairings[0][0] is None:
+        raise ValueError('No possible bye player found.')
+    else:
+        print 'by given to ', pairings[len(pairings) - 2]
+    return pairings
+
+
 def insertByePlayer(standings):
     tournament = getCurrentTournamentId()
     db = connect()
@@ -203,9 +231,11 @@ def swissPairings():
         id2: the second player's unique id
         name2: the second player's name
     """
-    standings = playerStandings()
     playerCount = countPlayers()
     if playerCount % 2 == 1:
-        insertByePlayer(standings)
+        standings = getOddPairingMatches()
+    else:
+        standings = playerStandings()
+
     return [(p1[0], p1[1], p2[0], p2[1]) for p1, p2 in zip(standings[::2], standings[1::2])]
 
