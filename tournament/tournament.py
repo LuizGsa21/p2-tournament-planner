@@ -184,36 +184,8 @@ def getOddPairingMatches():
 
     if pairings[0][0] is None:
         raise ValueError('No possible bye player found.')
-    else:
-        print 'by given to ', pairings[len(pairings) - 2]
+
     return pairings
-
-
-def insertByePlayer(standings):
-    tournament = getCurrentTournamentId()
-    db = connect()
-    cursor = db.cursor()
-    # Losing players get priority on free wins.
-    cursor.execute(
-        """SELECT player_id
-           FROM standings
-           WHERE tournament = %s AND player_id NOT IN
-                       (SELECT player1
-                        FROM matches
-                        WHERE tournament = %s AND player2 IS NULL)
-                        ORDER BY wins LIMIT 1""", (tournament, tournament))
-    byePlayer = cursor.fetchone()
-    db.close()
-    
-    if byePlayer is None:
-        raise ValueError('No possible bye player found.')
-
-    # Move chosen player to the bottom of the list, then append the byePlayer
-    for i, player in enumerate(standings):
-        if byePlayer[0] == player[0]:
-            standings.append(standings.pop(i))
-            standings.append((None, None))
-            break
 
 
 def swissPairings():
