@@ -12,6 +12,12 @@ def connect():
 
 
 def startNewTournament(name):
+    """Starts a new tournament with the given. Returns it's unique id.
+    Parameters:
+     name: Tournament name
+    Returns:
+        int - Tournament's unique id
+    """
     db = connect()
     cursor = db.cursor()
     cursor.execute('INSERT INTO tournaments (name) VALUES (%s)', (name,))
@@ -21,6 +27,12 @@ def startNewTournament(name):
 
 
 def getCurrentTournamentId():
+    """Returns the current tournament's unique id.
+    Throws a ValueError exception when no tournament is found.
+
+    Returns:
+      int - Tournament's unique id
+    """
     db = connect()
     cursor = db.cursor()
     cursor.execute('SELECT id FROM tournaments ORDER BY id DESC LIMIT 1')
@@ -79,11 +91,16 @@ def registerPlayer(name):
 
 
 def playerStandings(allTournaments=False):
-    """Returns a list of the players and their win records, sorted by wins.
+    """Returns a list of the players and their win records, sorted by wins
+    for the current tournament.
 
     The first entry in the list should be the player in first place, or a player
     tied for first place if there is currently a tie.
 
+    Parameters:
+     allTournaments:
+        boolean Default = False
+        Set to True to receive player standings for all tournaments
     Returns:
       A list of tuples, each of which contains (id, name, wins, matches):
         id: the player's unique id (assigned by the database)
@@ -97,12 +114,12 @@ def playerStandings(allTournaments=False):
     if allTournaments:
         cursor.execute("""SELECT player_id, player_name, wins, total_matches
                           FROM standings
-                          ORDER BY wins DESC, player_id""")
+                          ORDER BY wins DESC, omw DESC, player_id""")
     else:
         tournament = getCurrentTournamentId()
         cursor.execute("""SELECT player_id, player_name, wins, total_matches
                           FROM standings
-                          WHERE tournament = %s ORDER BY wins DESC, player_id""", (tournament,))
+                          WHERE tournament = %s ORDER BY wins DESC, omw DESC, player_id""", (tournament,))
     standings = cursor.fetchall()
     db.close()
     return standings
@@ -111,16 +128,29 @@ def playerStandings(allTournaments=False):
 def reportMatch(player1, player2, isDraw=False):
     """Records the outcome of a single match between two players.
 
-    Args:
-      winner:  the id number of the player who won
-      loser:  the id number of the player who lost
-    """
-    tournament = getCurrentTournamentId()
+    Player1 wins when player2 is null OR isDraw == False
+    Player2 wins when player1 is null.
 
-    if isDraw:
-        winner = None
-    else:
+    A draw is not reported if both players are null.
+
+    Args:
+      player1: default winner
+      player2: default loser
+      isDraw: set to true to report a draw match.
+    Returns:
+      Boolean: True if match was reported, false otherwise.
+    """
+    if player1 is None:
+        if player2 is None:
+            return False
+        else:
+            winner = player2
+    elif player2 is None or isDraw is False:
         winner = player1
+    else:
+        winner = None
+
+    tournament = getCurrentTournamentId()
 
     db = connect()
     cursor = db.cursor()
@@ -128,14 +158,21 @@ def reportMatch(player1, player2, isDraw=False):
                    (tournament, winner, player1, player2))
     db.commit()
     db.close()
+    return True
 
 
 def insertByePlayer(standings):
     tournament = getCurrentTournamentId()
     db = connect()
     cursor = db.cursor()
-    cursor.execute("""SELECT player_id FROM standings WHERE tournament = %s AND player_id NOT IN
-                       (SELECT player1 FROM matches WHERE tournament = %s AND player2 IS NULL)
+    # Losing players get priority on free wins.
+    cursor.execute(
+        """SELECT player_id
+           FROM standings
+           WHERE tournament = %s AND player_id NOT IN
+                       (SELECT player1
+                        FROM matches
+                        WHERE tournament = %s AND player2 IS NULL)
                         ORDER BY wins LIMIT 1""", (tournament, tournament))
     byePlayer = cursor.fetchone()
     db.close()
@@ -143,8 +180,8 @@ def insertByePlayer(standings):
     if byePlayer is None:
         raise ValueError('No possible bye player found.')
 
-    # Losing players get priority on free wins.
-    for i, player in reversed(list(enumerate(standings))):
+    # Move chosen player to the bottom of the list, then append the byePlayer
+    for i, player in enumerate(standings):
         if byePlayer[0] == player[0]:
             standings.append(standings.pop(i))
             standings.append((None, None))
