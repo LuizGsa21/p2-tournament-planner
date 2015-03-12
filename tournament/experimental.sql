@@ -1,5 +1,5 @@
 
--- Since python out performed these queries, they were not implemented to the application
+-- Since python out performed these queries, they were not implemented in the application
 
 -- Returns swiss pairings for even number players.
 EXPLAIN ANALYZE WITH rankings AS
