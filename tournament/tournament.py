@@ -2,7 +2,6 @@
 # 
 # tournament.py -- implementation of a Swiss-system tournament
 #
-
 import psycopg2
 
 
@@ -12,7 +11,7 @@ def connect():
 
 
 def startNewTournament(name):
-    """Starts a new tournament with the given. Returns it's unique id.
+    """Starts a new tournament with the given name. Returns the tournament's unique id.
     Parameters:
      name: Tournament name
     Returns:
@@ -100,7 +99,7 @@ def playerStandings(allTournaments=False):
     Parameters:
      allTournaments:
         boolean Default = False
-        Set to True to receive player standings for all tournaments
+            Set to True to receive player standings for all tournaments
     Returns:
       A list of tuples, each of which contains (id, name, wins, matches):
         id: the player's unique id (assigned by the database)
@@ -113,13 +112,12 @@ def playerStandings(allTournaments=False):
     cursor = db.cursor()
     if allTournaments:
         cursor.execute("""SELECT player_id, player_name, wins, total_matches
-                          FROM standings
-                          ORDER BY wins DESC, omw DESC, player_id""")
+                          FROM standings""")
     else:
         tournament = getCurrentTournamentId()
         cursor.execute("""SELECT player_id, player_name, wins, total_matches
                           FROM standings
-                          WHERE tournament = %s ORDER BY wins DESC, omw DESC, player_id""", (tournament,))
+                          WHERE tournament = %s""", (tournament,))
     standings = cursor.fetchall()
     db.close()
     return standings
@@ -128,24 +126,23 @@ def playerStandings(allTournaments=False):
 def reportMatch(player1, player2, isDraw=False):
     """Records the outcome of a single match between two players.
 
-    Player1 wins when player2 is null OR isDraw == False
-    Player2 wins when player1 is null.
-
-    A draw is not reported if both players are null.
+    - No match is not reported when both players are null.
 
     Args:
-      player1: default winner
-      player2: default loser
-      isDraw: set to true to report a draw match.
+      player1: wins by default (player id) type int
+      player2: wins only when player1 is null. (player id) type int
+      isDraw: set this to True for draw matches.
+              Both players must be non-null for a draw to be reported,
+              otherwise a win is given to the non-null player.
     Returns:
-      Boolean: True if match was reported, false otherwise.
+      Boolean: True when match is reported, false otherwise.
     """
     if player1 is None:
         if player2 is None:
             return False
         else:
             winner = player2
-    elif player2 is None or isDraw is False:
+    elif player2 is None or not isDraw:
         winner = player1
     else:
         winner = None
@@ -161,31 +158,40 @@ def reportMatch(player1, player2, isDraw=False):
     return True
 
 
-def getOddPairingMatches():
+def insertOddPlayer(standings):
+    """Shifts the next possible bye player to the bottom of the standings list,
+       then appends (None, None, None, None) to represent a bye player.
+
+       Throws a ValueError exception when all players have already been given a bye.
+
+       Note:
+        The standings list must be update-to-date with playerStandings(). If the player
+        positions where modified, then the wrong player will be given a bye.
+
+    Args:
+        standings: an up-to-date list from playerStandings()
+    """
+
+    tournament = getCurrentTournamentId()
     db = connect()
     cursor = db.cursor()
-    cursor.execute("""WITH rankings AS (SELECT player_id, player_name, wins, total_matches
-                                        FROM standings WHERE tournament = %s
-                                        ORDER BY wins DESC, omw DESC, player_id),
-                           byeplayer AS (SELECT r.*
-                                         FROM rankings AS r
-                                         WHERE r.player_id NOT IN (SELECT m.player1
-                                                                   FROM matches AS m
-                                                                   WHERE m.player1 = r.player_id AND player2 IS NULL) ORDER BY wins LIMIT 1)
-                        SELECT  r.*
-                        FROM rankings AS r, byeplayer AS b
-                        WHERE r.player_id != b.player_id
-                        UNION ALL
-                        SELECT * FROM byeplayer
-                        UNION ALL
-                        SELECT NULL, NULL, NULL, NULL""", (getCurrentTournamentId(),))
-    pairings = cursor.fetchall()
+    # retrieve the index for the next bye player
+    cursor.execute("""
+    WITH rankings AS (
+            SELECT row_number() OVER () AS row, * FROM standings WHERE tournament = %s),
+         next_bye AS (
+            SELECT * FROM rankings WHERE player_id NOT IN
+                  (SELECT player1 FROM matches WHERE tournament = %s AND player2 is NULL) ORDER BY wins LIMIT 1)
+
+         SELECT r.row - 1 FROM rankings as r, next_bye WHERE r.player_id = next_bye.player_id""",
+                   (tournament, tournament))
+    index = cursor.fetchone()
     db.close()
-
-    if pairings[0][0] is None:
+    if index is None:
         raise ValueError('No possible bye player found.')
-
-    return pairings
+    else:
+        standings.append(standings.pop(index[0]))
+        standings.append((None, None, None, None))
 
 
 def swissPairings():
@@ -203,11 +209,10 @@ def swissPairings():
         id2: the second player's unique id
         name2: the second player's name
     """
-    playerCount = countPlayers()
-    if playerCount % 2 == 1:
-        standings = getOddPairingMatches()
-    else:
-        standings = playerStandings()
+    standings = playerStandings()
+
+    if countPlayers() % 2 == 1:
+        insertOddPlayer(standings)
 
     return [(p1[0], p1[1], p2[0], p2[1]) for p1, p2 in zip(standings[::2], standings[1::2])]
 
