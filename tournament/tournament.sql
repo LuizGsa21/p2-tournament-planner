@@ -79,10 +79,11 @@ CREATE VIEW standings AS
     COALESCE(s.wins, 0)                                AS wins,
     COALESCE(s.total_matches, 0)                       AS total_matches,
     -- To get OMW, use `scores` to get played opponents, then calculate the sum from the wins column.
-    (SELECT sum(wins)
-     FROM scores
-     WHERE id = ANY ((SELECT played_opponents
-                      FROM scores
-                      WHERE id = p.id) :: INTEGER [])) AS omw
+    COALESCE((SELECT sum(wins)
+              FROM scores
+              WHERE id = ANY ((SELECT played_opponents
+                               FROM scores
+                               WHERE id = p.id) :: INTEGER [])), 0) AS omw
   FROM players AS p
-    LEFT JOIN scores AS s ON p.tournament = s.tournament AND p.id = s.id;
+    LEFT JOIN scores AS s ON p.tournament = s.tournament AND p.id = s.id
+  ORDER BY wins DESC, omw DESC, player_id;
