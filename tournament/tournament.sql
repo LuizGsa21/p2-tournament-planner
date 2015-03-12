@@ -56,6 +56,7 @@ RETURNS NULL ON NULL INPUT;
 
 -- Standings
 -- columns returned: tournament, player_id, player_name, wins, total_matches, omw (Opponent match wins)
+-- TODO: Only calculate OMW when needed.
 CREATE VIEW standings AS
   -- Create a CTE for player's id, wins, total match count and an array of played opponents
   -- When a player hasn't played a match, the following columns return NULL: wins, total_matches, played_opponents
@@ -85,4 +86,4 @@ CREATE VIEW standings AS
                                WHERE id = p.id) :: INTEGER [])), 0) AS omw
   FROM players AS p
     LEFT JOIN scores AS s ON p.tournament = s.tournament AND p.id = s.id
-  ORDER BY wins DESC, omw DESC, player_id;
+  ORDER BY p.tournament, wins DESC, omw DESC, player_id;
