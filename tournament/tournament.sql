@@ -25,7 +25,7 @@ CREATE TABLE players (
 -- id: used for differentiating a rematch.
 -- tournament: registered tournament id
 -- player1: player playing in match.
--- player2: player playing in match OR a NULL to represent a bye player
+-- player2: player playing in match OR a NULL value to represent a bye player
 -- winner: the match winner OR a NULL value to represent a draw
 CREATE TABLE matches (
   id         SERIAL PRIMARY KEY,
@@ -37,12 +37,11 @@ CREATE TABLE matches (
   CHECK (player1 != player2)
 );
 
+-- Returns an array of played opponents from the given player. ByePlayers are represented with null values
 -- args:
 --    players.id - the given player
 --    tournament.id - the tournament to search in
--- returns:
---    an array of played opponents from the given player. ByePlayers are represented with null values
-CREATE OR REPLACE FUNCTION get_played_opponents(INTEGER, INTEGER)
+CREATE OR REPLACE FUNCTION get_played_opponents(player_id INTEGER, tournament_id INTEGER)
   RETURNS INTEGER []
 AS 'SELECT ARRAY(SELECT
                    DISTINCT CASE
@@ -56,9 +55,9 @@ STABLE
 RETURNS NULL ON NULL INPUT;
 
 -- Standings
--- columns returned: tournament, player_id, player_name, wins, total_matches, omw
+-- columns returned: tournament, player_id, player_name, wins, total_matches, omw (Opponent match wins)
 CREATE VIEW standings AS
-  -- Create a CTE to get player's id, wins, total match count and an array of played opponents
+  -- Create a CTE for player's id, wins, total match count and an array of played opponents
   -- When a player hasn't played a match, the following columns return NULL: wins, total_matches, played_opponents
   WITH scores AS (
       SELECT
@@ -75,7 +74,7 @@ CREATE VIEW standings AS
     p.tournament,
     p.id                                               AS player_id,
     p.name                                             AS player_name,
-    -- Use coalesce to filter out null values returned from `scores`
+    -- Use coalesce to filter out null columns returned from `scores`
     COALESCE(s.wins, 0)                                AS wins,
     COALESCE(s.total_matches, 0)                       AS total_matches,
     -- To get OMW, use `scores` to get played opponents, then calculate the sum from the wins column.
